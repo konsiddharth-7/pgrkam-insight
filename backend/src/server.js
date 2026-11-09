@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import eventsRouter from './routes/events.js';
 
 
 const app = express();
@@ -19,7 +20,7 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', service: 'pgrkam-insight-api' });
 });
 
-
+app.use('/api/events', eventsRouter);
 
 
 app.use((req, res) => {
