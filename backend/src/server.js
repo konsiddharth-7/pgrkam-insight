@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
-import eventsRouter from './routes/events.js';
+
 
 const app = express();
 const port = process.env.PORT || 5001;
@@ -20,7 +20,6 @@ app.get('/api/health', (req, res) => {
 });
 
 
-app.use('/api/events', eventsRouter);
 
 
 app.use((req, res) => {
