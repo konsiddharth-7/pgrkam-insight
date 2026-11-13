@@ -28,7 +28,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "create-admin": "node scripts/create-admin.js"
+    "create-admin": "node scripts/create-admin.js" ,
+    "seed-skills": "node scripts/seed-skills.js"
   },
   "keywords": [],
   "author": "",
