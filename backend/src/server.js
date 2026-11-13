@@ -5,6 +5,8 @@ import cors from 'cors';
 import eventsRouter from './routes/events.js';
 import authRouter from './routes/auth.js';
 import adminRouter from './routes/admin.js';
+import profileRouter from './routes/profile.js';
+import catalogRouter from './routes/catalog.js';
 
 const app = express();
 const port = process.env.PORT || 5001;
@@ -21,6 +23,8 @@ app.get('/api/health', (req, res) => {
 app.use('/api/events', eventsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/profile', profileRouter);
+app.use('/api', catalogRouter);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
