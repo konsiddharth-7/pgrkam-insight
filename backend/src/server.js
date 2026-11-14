@@ -6,10 +6,12 @@ import eventsRouter from './routes/events.js';
 import authRouter from './routes/auth.js';
 import adminRouter from './routes/admin.js';
 import adminJobsRouter from './routes/adminJobs.js';
+import adminApplicationsRouter from './routes/adminApplications.js';
 import profileRouter from './routes/profile.js';
 import catalogRouter from './routes/catalog.js';
 import jobsRouter from './routes/jobs.js';
 import savedJobsRouter from './routes/savedJobs.js';
+import applicationsRouter from './routes/applications.js';
 
 const app = express();
 const port = process.env.PORT || 5001;
@@ -26,10 +28,12 @@ app.get('/api/health', (req, res) => {
 app.use('/api/events', eventsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/admin/jobs', adminJobsRouter);
+app.use('/api/admin/applications', adminApplicationsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/profile', profileRouter);
 app.use('/api/jobs', jobsRouter);
 app.use('/api/saved-jobs', savedJobsRouter);
+app.use('/api/applications', applicationsRouter);
 app.use('/api', catalogRouter);
 
 app.use((req, res) => {
@@ -44,11 +48,8 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-
 app.listen(port, () => {
   console.log(`PGRKAM Insight API listening on port ${port}`);
 });
 
 export default app;
-
-
