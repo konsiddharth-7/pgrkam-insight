@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import "./App.css";
+import { usePageView } from "./tracking";
 
 const districts = [
   { name: "Ludhiana", users: 3200 },
@@ -27,6 +28,7 @@ const categories = [
 
 function App() {
   const [activeTab, setActiveTab] = useState("Overview");
+  usePageView("dashboard");
 
   return (
     <div className="dashboard">
