@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import prisma from '../db.js';
+import { optionalAuth } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -25,12 +26,13 @@ const EVENT_NAMES = [
 const DEVICES = ['desktop', 'mobile', 'tablet'];
 
 // ---------- Validation (Zod 4) ----------
+// user_id is intentionally NOT here: it comes from the login token, never the body.
+// Zod ignores unknown fields, so old clients that still send it will not break.
 const eventSchema = z.object({
   event_id: z.uuid(),
   event_name: z.enum(EVENT_NAMES),
   session_id: z.string().min(1).max(100),
   event_time: z.iso.datetime({ offset: true }).optional(),
-  user_id: z.number().int().positive().nullable().optional(),
   anonymous_id: z.string().max(100).nullable().optional(),
   source: z.string().max(200).nullable().optional(),
   campaign: z.string().max(100).nullable().optional(),
@@ -57,15 +59,15 @@ export function normaliseSource(raw) {
   let s = raw.trim().toLowerCase();
   if (!s) return 'direct';
 
-  s = s.replace(/^[a-z]+:\/\//, ''); 
-  s = s.split(/[/?#]/)[0]; 
+  s = s.replace(/^[a-z]+:\/\//, ''); // remove protocol
+  s = s.split(/[/?#]/)[0]; // keep only the host part
   s = s.replace(/^www\./, '');
 
   if (s.includes('.')) {
     const labels = s.split('.');
-    labels.pop(); 
+    labels.pop(); // drop the TLD (com, in, org...)
     while (labels.length > 1 && SECOND_LEVEL.has(labels[labels.length - 1])) {
-      labels.pop(); 
+      labels.pop(); // drop co / com / gov in names like google.co.in
     }
     s = labels[labels.length - 1];
   }
@@ -75,6 +77,7 @@ export function normaliseSource(raw) {
   return SOURCE_ALIASES[s] || s;
 }
 
+// ---------- Helper: save a rejected payload ----------
 async function logRejected(payload, reason) {
   try {
     const safePayload =
@@ -83,13 +86,13 @@ async function logRejected(payload, reason) {
       data: { payload: safePayload, reason: reason.slice(0, 1000) },
     });
   } catch (err) {
-   
+    // Logging a rejection must never break the response
     console.error('Could not write to rejected_events:', err.message);
   }
 }
 
-
-router.post('/', async (req, res) => {
+// ---------- POST /api/events ----------
+router.post('/', optionalAuth, async (req, res) => {
   const parsed = eventSchema.safeParse(req.body);
 
   if (!parsed.success) {
@@ -104,43 +107,38 @@ router.post('/', async (req, res) => {
 
   const e = parsed.data;
 
+  // A wrong clock in the browser must not create events in the future
+  let eventTime = e.event_time ? new Date(e.event_time) : new Date();
+  if (eventTime.getTime() > Date.now() + 5 * 60 * 1000) {
+    eventTime = new Date();
+  }
+
   try {
     const row = await prisma.user_events.create({
       data: {
         event_id: e.event_id,
-        user_id: e.user_id ?? null,
+        user_id: req.user?.id ?? null, // from the token, or null for anonymous visitors
         anonymous_id: e.anonymous_id ?? null,
         event_name: e.event_name,
         source: normaliseSource(e.source),
         campaign: e.campaign ?? null,
         device: e.device ?? null,
         session_id: e.session_id,
-        event_time: new Date(e.event_time ?? Date.now()),
+        event_time: eventTime,
         properties: e.properties ?? {},
       },
       select: { id: true },
     });
 
-  
+    // id is a BigInt, which JSON cannot send, so convert it to a string
     return res.status(201).json({ status: 'stored', id: row.id.toString() });
   } catch (err) {
-
+    // P2002 = unique constraint failed (this event_id is already stored)
     if (err.code === 'P2002') {
       return res.status(200).json({ status: 'duplicate' });
     }
-
-   
-    if (err.code === 'P2003') {
-      await logRejected(req.body, 'user_id does not exist');
-      return res.status(400).json({
-        error: 'Invalid event',
-        details: [{ field: 'user_id', message: 'User does not exist' }],
-      });
-    }
-
-    throw err; 
+    throw err; // Express 5 sends this to the error handler in server.js
   }
 });
 
 export default router;
-

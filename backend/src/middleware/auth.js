@@ -36,6 +36,29 @@ export async function requireAuth(req, res, next) {
   next();
 }
 
+// Like requireAuth, but never rejects. A valid token sets req.user;
+// a missing or invalid token just leaves the request anonymous.
+export async function optionalAuth(req, res, next) {
+  const header = req.headers.authorization || '';
+  const [scheme, token] = header.split(' ');
+  if (scheme !== 'Bearer' || !token) return next();
+
+  try {
+    const payload = verifyToken(token);
+    const userId = Number(payload.sub);
+    if (Number.isInteger(userId)) {
+      const user = await prisma.users.findUnique({
+        where: { id: userId },
+        select: { id: true, role: true },
+      });
+      if (user) req.user = user;
+    }
+  } catch {
+    // Invalid or expired token: treat as anonymous
+  }
+  next();
+}
+
 // Use AFTER requireAuth. Example: requireRole('admin', 'employer')
 export function requireRole(...allowedRoles) {
   return (req, res, next) => {
