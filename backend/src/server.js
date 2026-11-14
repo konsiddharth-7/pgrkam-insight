@@ -44,8 +44,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+
 app.listen(port, () => {
   console.log(`PGRKAM Insight API listening on port ${port}`);
 });
 
 export default app;
+
+
