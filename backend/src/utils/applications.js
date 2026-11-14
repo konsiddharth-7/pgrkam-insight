@@ -12,13 +12,13 @@ const FORWARD = ['Applied', 'Under Review', 'Shortlisted', 'Accepted', 'Placed']
 
 // Returns an error message, or null when the move is allowed
 export function checkTransition(from, to) {
-  if (from === to) return Application is already ${from};
+  if (from === to) return `Application is already ${from}`;
   if (from === 'Placed' || from === 'Rejected') {
-    return Application is ${from} and can no longer change;
+    return `Application is ${from} and can no longer change`;
   }
   if (to === 'Rejected') return null; // allowed from any open step
   if (FORWARD.indexOf(to) > FORWARD.indexOf(from)) return null;
-  return Status cannot move backwards from ${from} to ${to};
+  return `Status cannot move backwards from ${from} to ${to}`;
 }
 
 // What we load with an application
